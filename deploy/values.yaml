@@ -1,6 +1,6 @@
 ingress:
   enabled: true
-  className: internal-nginx
+  className: nginx
 
 resources:
   requests:

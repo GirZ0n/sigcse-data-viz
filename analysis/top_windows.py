@@ -4,17 +4,17 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from welcome.data_input import ZipData
 
-@st.cache_data(show_spinner='Loading window data')
-def load_tool_window_data(data_path: Path) -> pd.DataFrame:
-    tool_window_data = pd.read_csv(
-        data_path / "toolwindowdata.csv", usecols=["research_id", "date", "action", "active_window"]
-    )
+
+@st.cache_data(show_spinner="Loading window data")
+def load_tool_window_data(zip_data: ZipData) -> pd.DataFrame:
+    tool_window_data = zip_data.toolwindowdata[["research_id", "date", "action", "active_window"]]
 
     tool_window_data["date"] = pd.to_datetime(tool_window_data["date"], format="mixed")
     tool_window_data.dropna(subset=["active_window"], inplace=True)
 
-    researches = pd.read_csv(data_path / "researches.csv", usecols=["id", "user"])
+    researches = zip_data.researches[["id", "user"]]
     researches = researches.rename(columns={"id": "research_id"})
     researches = researches.convert_dtypes()
 
@@ -25,17 +25,17 @@ def load_tool_window_data(data_path: Path) -> pd.DataFrame:
 
 
 def show_top_windows_page():
-    if st.session_state.get("data_path") is None:
+    if st.session_state.get("zip_data") is None:
         st.error(f"You can't access this page without passing data.")
         st.stop()
 
-    data_path = st.session_state["data_path"]
+    zip_data = st.session_state["zip_data"]
 
     # ----------------------------------------------------------------
 
     st.title("Top Windows")
 
-    tool_window_data = load_tool_window_data(data_path)
+    tool_window_data = load_tool_window_data(zip_data)
 
     with st.expander("Config", expanded=True):
         left, right = st.columns(2, vertical_alignment="center")
@@ -59,7 +59,7 @@ def show_top_windows_page():
         )
 
         if normalize:
-            top_stats /= tool_window_data['user'].nunique()
+            top_stats /= tool_window_data["user"].nunique()
             top_stats *= 100
 
         top_stats = top_stats.reset_index()

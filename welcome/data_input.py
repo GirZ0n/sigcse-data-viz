@@ -1,14 +1,13 @@
-import os
-from pathlib import Path
+import zipfile
+from collections import namedtuple
 from typing import Literal
 
 import pandas as pd
 import streamlit as st
 
-REQUIRED_FILES = (
-    "activitydata.csv",
-    "researches.csv",
-    "toolwindowdata.csv",
+ZipData = namedtuple(
+    "ZipData",
+    ["researches", "activitydata", "toolwindowdata", "documentdata", "fileeditordata", "surveydata"],
 )
 
 
@@ -23,24 +22,29 @@ def _format_time(seconds: float) -> str:
         return f"{seconds / 86400:.2f} days"
 
 
-@st.cache_data(show_spinner='Calculating basic stats...')
-def _calculate_basic_research_stats(data_path: Path) -> tuple[int, int, float]:
-    research_data = pd.read_csv(data_path / "researches.csv")
-    research_data = research_data[research_data["user"] != 20]
-    return research_data["user"].nunique(), research_data["id"].nunique(), research_data.groupby("user").size().median()
+@st.cache_data(show_spinner="Calculating basic stats...")
+def _calculate_basic_research_stats(zip_data: ZipData) -> tuple[int, int, float]:
+    researches_data = zip_data.researches
+    researches_data = researches_data[researches_data["user"] != 20]
+
+    return (
+        researches_data["user"].nunique(),
+        researches_data["id"].nunique(),
+        researches_data.groupby("user").size().median(),
+    )
 
 
-@st.cache_data(show_spinner='Calculating duration stats...')
-def _calculate_duration_stats(data_path: Path, per: Literal["user", "session"]) -> tuple[float, float, float]:
-    activitydata = pd.read_csv(data_path / "activitydata.csv", usecols=["research_id", "date"])
-    document_data = pd.read_csv(data_path / "documentdata.csv", usecols=["research_id", "date"])
-    fileeditordata = pd.read_csv(data_path / "fileeditordata.csv", usecols=["research_id", "date"])
-    surveydata = pd.read_csv(data_path / "surveydata.csv", usecols=["research_id", "date"])
-    toolwindowdata = pd.read_csv(data_path / "toolwindowdata.csv", usecols=["research_id", "date"])
+@st.cache_data(show_spinner="Calculating duration stats...")
+def _calculate_duration_stats(zip_data: ZipData, per: Literal["user", "session"]) -> tuple[float, float, float]:
+    activity_data = zip_data.activitydata[["research_id", "date"]]
+    document_data = zip_data.documentdata[["research_id", "date"]]
+    file_editor_data = zip_data.fileeditordata[["research_id", "date"]]
+    survey_data = zip_data.surveydata[["research_id", "date"]]
+    tool_window_data = zip_data.toolwindowdata[["research_id", "date"]]
 
-    data = pd.concat([activitydata, document_data, fileeditordata, surveydata, toolwindowdata])
+    data = pd.concat([activity_data, document_data, file_editor_data, survey_data, tool_window_data])
 
-    researches = pd.read_csv(data_path / "researches.csv", usecols=["id", "user"])
+    researches = zip_data.researches[["id", "user"]]
     data = pd.merge(data, researches, left_on="research_id", right_on="id", how="left")[["research_id", "user", "date"]]
 
     data = data[data["user"] != 20]
@@ -60,36 +64,53 @@ def _calculate_duration_stats(data_path: Path, per: Literal["user", "session"]) 
     return duration.min(), duration.median(), duration.max()
 
 
+def check_zip_file(zip_file):
+    if not zipfile.is_zipfile(zip_file):
+        st.error("The passed file is not a valid zip file.")
+        st.stop()
+
+    with zipfile.ZipFile(zip_file) as zip_ref:
+        files = zip_ref.namelist()
+
+        missing_file = next(
+            (required_file for required_file in ZipData._fields if f"{required_file}.csv" not in files),
+            None,
+        )
+
+        if missing_file is not None:
+            st.error(f"The zip must contain `{missing_file}.csv`.")
+            st.stop()
+
+        data = {}
+        for file_name in ZipData._fields:
+            with zip_ref.open(f"{file_name}.csv") as file:
+                data[file_name] = pd.read_csv(file)
+
+    return ZipData(**data)
+
+
+def load_data() -> ZipData:
+    zip_file = st.file_uploader("Data:", type="zip")
+
+    if zip_file is not None:
+        zip_data = check_zip_file(zip_file)
+    elif (zip_data := st.session_state.get("zip_data")) is None:
+        st.stop()
+
+    st.session_state["zip_data"] = zip_data
+    st.success("The data has been successfully loaded. Now you can access pages with different analyses.")
+
+    return zip_data
+
+
 def show_data_input_page():
     st.title("Data Input")
 
-    data_path = st.text_input("Data path:", value=st.session_state.get("data_path"))
-
-    if data_path is None:
-        st.stop()
-
-    data_path = Path(data_path)
-
-    if not data_path.exists():
-        st.error("The specified path does not exist.")
-        st.stop()
-
-    if not data_path.is_dir():
-        st.error(f"The specified path must be a directory. You should enter a path to a folder with research data.")
-        st.stop()
-
-    files = os.listdir(data_path)
-    missing_file = next((required_file for required_file in REQUIRED_FILES if required_file not in files), None)
-    if missing_file is not None:
-        st.error(f"The directory must contain `{missing_file}`.")
-        st.stop()
-
-    st.session_state["data_path"] = data_path
-    st.success("The data has been successfully loaded. Now you can access pages with different analyses.")
+    zip_data = load_data()
 
     st.header("Basic stats")
 
-    number_of_users, number_of_sessions, median_number_of_sessions = _calculate_basic_research_stats(data_path)
+    number_of_users, number_of_sessions, median_number_of_sessions = _calculate_basic_research_stats(zip_data)
 
     left, middle, right = st.columns(3)
 
@@ -102,7 +123,7 @@ def show_data_input_page():
     with right:
         st.metric("Median number of sessions", round(median_number_of_sessions, 2))
 
-    session_min, session_median, session_max = _calculate_duration_stats(data_path, per="session")
+    session_min, session_median, session_max = _calculate_duration_stats(zip_data, per="session")
 
     left, middle, right = st.columns(3)
 
@@ -115,7 +136,7 @@ def show_data_input_page():
     with right:
         st.metric("Maximum session duration", _format_time(session_max))
 
-    user_min, user_median, user_max = _calculate_duration_stats(data_path, per="user")
+    user_min, user_median, user_max = _calculate_duration_stats(zip_data, per="user")
 
     left, middle, right = st.columns(3)
 

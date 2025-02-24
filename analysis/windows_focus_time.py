@@ -8,10 +8,12 @@ from analysis.top_windows import load_tool_window_data
 
 import plotly.express as px
 
+from welcome.data_input import ZipData
+
 
 @st.cache_data(show_spinner="Loading duration data")
-def load_duration_data(data_path: Path) -> pd.DataFrame:
-    tool_window_data = load_tool_window_data(data_path)
+def load_duration_data(zip_data: ZipData) -> pd.DataFrame:
+    tool_window_data = load_tool_window_data(zip_data)
 
     tool_window_data = tool_window_data[tool_window_data["action"] == "FOCUSED"]
     tool_window_data.drop(columns=["action"], inplace=True)
@@ -53,15 +55,15 @@ def _normalize_duration(duration: float, scale: Literal["Seconds", "Minutes", "H
 
 
 def show_window_focus_time_page():
-    if st.session_state.get("data_path") is None:
+    if st.session_state.get("zip_data") is None:
         st.error(f"You can't access this page without passing data.")
         st.stop()
 
-    data_path = st.session_state["data_path"]
+    zip_data = st.session_state["zip_data"]
 
     st.title("Window Focus Time")
 
-    duration_data = load_duration_data(data_path)
+    duration_data = load_duration_data(zip_data)
 
     with st.expander("Config", expanded=True):
         left, right = st.columns(2, vertical_alignment="center")

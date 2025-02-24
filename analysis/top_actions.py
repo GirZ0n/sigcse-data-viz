@@ -1,10 +1,11 @@
 import re
-from pathlib import Path
-from typing import Literal, Tuple
+from typing import Literal
 
 import pandas as pd
-import streamlit as st
 import plotly.express as px
+import streamlit as st
+
+from welcome.data_input import ZipData
 
 
 def _normalize_info(value: str) -> str:
@@ -29,13 +30,13 @@ def _normalize_info(value: str) -> str:
     return value
 
 
-@st.cache_data(show_spinner='Loading data')
-def load_data(data_path: Path, kind: Literal["all", "shortcut", "standalone"]) -> pd.DataFrame:
-    activity_data = pd.read_csv(data_path / "activitydata.csv", usecols=["research_id", "type", "info", "action_id"])
+@st.cache_data(show_spinner="Loading data")
+def load_data(zip_data: ZipData, kind: Literal["all", "shortcut", "standalone"]) -> pd.DataFrame:
+    activity_data = zip_data.activitydata[["research_id", "type", "info", "action_id"]]
     activity_data["type"] = pd.Categorical(activity_data["type"])
     activity_data = activity_data.convert_dtypes()
 
-    researches = pd.read_csv(data_path / "researches.csv", usecols=["id", "user"])
+    researches = zip_data.researches[["id", "user"]]
     researches = researches.rename(columns={"id": "research_id"})
     researches = researches.convert_dtypes()
 
@@ -66,11 +67,11 @@ def load_data(data_path: Path, kind: Literal["all", "shortcut", "standalone"]) -
 
 
 def show_top_actions_page():
-    if st.session_state.get("data_path") is None:
+    if st.session_state.get("zip_data") is None:
         st.error(f"You can't access this page without passing data.")
         st.stop()
 
-    data_path = st.session_state["data_path"]
+    zip_data = st.session_state["zip_data"]
 
     # ------------------------------------------------------------------------
 
@@ -88,7 +89,7 @@ def show_top_actions_page():
                 format_func=str.title,
             )
 
-        shortcuts_data = load_data(data_path, kind=kind)
+        shortcuts_data = load_data(zip_data, kind=kind)
 
         with right:
             top = st.number_input("Top", value=10, min_value=1, max_value=len(shortcuts_data))

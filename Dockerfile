@@ -15,6 +15,7 @@ USER 0
 RUN pip3 install -r requirements.txt
 USER 1001
 
+COPY --chown=1001:1001 .streamlit /home/vis-server/app/.streamlit
 COPY --chown=1001:1001 main.py /home/vis-server/app/main.py
 COPY --chown=1001:1001 welcome /home/vis-server/app/welcome
 COPY --chown=1001:1001 entrypoint.sh /home/vis-server/app/entrypoint.sh

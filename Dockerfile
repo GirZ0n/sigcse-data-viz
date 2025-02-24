@@ -20,5 +20,7 @@ COPY --chown=1001:1001 welcome /home/vis-server/app/welcome
 COPY --chown=1001:1001 entrypoint.sh /home/vis-server/app/entrypoint.sh
 COPY --chown=1001:1001 analysis /home/vis-server/app/analysis
 
+EXPOSE 8501
+
 RUN chmod +x /home/vis-server/app/entrypoint.sh
 ENTRYPOINT ["/home/vis-server/app/entrypoint.sh"]

@@ -1,0 +1,7 @@
+.gitignore
+.idea
+deploy
+venv
+CODEOWNERS
+Dockerfile
+README.md

@@ -1,0 +1,25 @@
+apiVersion: skaffold/v4beta8
+kind: Config
+metadata:
+  name: vis-server
+build:
+  artifacts:
+    - image: registry.jetbrains.team/p/tasktracker-3/containers/vis-server
+      context: ..
+      docker: {}
+  local:
+    useDockerCLI: false
+    useBuildkit: true
+deploy:
+  helm:
+    releases:
+      - name: vis-server
+        remoteChart: oci://registry.jetbrains.team/p/cb/helm-charts/simple-app
+        version: 0.2.2
+        upgradeOnChange: true
+        setValueTemplates:
+          image: "{{.IMAGE_FULLY_QUALIFIED}}"
+          imagePullSecret: "{{.IMAGE_PULL_SECRET}}"
+          applicationName: "{{.APPLICATION_NAME}}"
+        valuesFiles:
+          - values.yaml

@@ -15,3 +15,5 @@ deployStrategy:
   rollingUpdate:
     maxUnavailable: 1
     maxSurge: 0
+
+containerPort: 8501

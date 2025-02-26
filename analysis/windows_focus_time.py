@@ -69,7 +69,7 @@ def show_window_focus_time_page():
         left, right = st.columns(2, vertical_alignment="center")
 
         with left:
-            top = st.number_input("Top", value=10, min_value=1, max_value=len(duration_data["active_window"].unique()))
+            top = st.number_input("Top", value=2, min_value=1, max_value=len(duration_data["active_window"].unique()))
 
         with right:
             scale = st.radio("Scale", ["Seconds", "Minutes", "Hours"], horizontal=True)

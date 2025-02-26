@@ -41,7 +41,7 @@ def show_top_windows_page():
         left, right = st.columns(2, vertical_alignment="center")
 
         with left:
-            top = st.number_input("Top", value=10, min_value=1, max_value=tool_window_data["active_window"].nunique())
+            top = st.number_input("Top", value=2, min_value=1, max_value=tool_window_data["active_window"].nunique())
 
         left, right = st.columns(2, vertical_alignment="center")
 

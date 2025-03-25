@@ -2,13 +2,13 @@ import streamlit as st
 
 
 def show_readme_page():
-    st.title("TaskTracker Visualization")
+    st.title("KOALA Visualization")
 
     st.header("🔍 Overview")
 
     st.markdown(
         """
-        This app provides a visualization of TaskTracker data, offering insights into user behavior based.
+        This app provides a visualization of KOALA data, offering insights into user behavior based.
         The main features include basic user session statistics, top user actions,
         top windows used, and window focus time analysis.
         """
@@ -21,7 +21,7 @@ def show_readme_page():
     st.markdown(
         """
         * 👥 Total users (participating in the study)
-        * 🔄 Total sessions (within TaskTracker)
+        * 🔄 Total sessions (within KOALA)
         * 📊 Median sessions per user
         * ⏳ Session/study duration: minimum, median and maximum
         """
